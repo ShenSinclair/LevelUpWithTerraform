@@ -1,0 +1,16 @@
+git clone https://github.com/hashicorp/learn-terraform-outputs.git
+
+cd learn-terraform-outputs
+
+terraform init
+
+terraform apply
+
+Output Queries:
+1. terraform output #Output of outputs
+2. terraform output lb_url #Output of load balancer URL
+3. terraform output -raw lb_url #Output of load balancer URL in machine readable format
+4. curl $(terraform output -raw lb_url) #Displays LB web page
+5. terraform output db_password #Output of database password
+6. grep --after-context=10 outputs terraform.tfstate #Displays content of statefile 
+7. terraform output -json #Machine readable output of outputs
