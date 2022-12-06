@@ -24,7 +24,7 @@ resource "aws_vpc" "golden_vpc" {
 
 # Create Public Subnet 1
 resource "aws_subnet" "pub_sub_1" {
-  vpc_id            = "aws_vpc.golden_vpc.id"
+  vpc_id            = "vpc-037f01947d82685a2"
   cidr_block        = "10.0.1.0/24"
   availability_zone = "us-west-2a"
 
@@ -35,7 +35,7 @@ resource "aws_subnet" "pub_sub_1" {
 
 # Create Public Subnet 2
 resource "aws_subnet" "pub_sub_2" {
-  vpc_id            = "aws_vpc.golden_vpc.id"
+  vpc_id            = "vpc-037f01947d82685a2"
   cidr_block        = "10.0.2.0/24"
   availability_zone = "us-west-2b"
 
@@ -46,7 +46,7 @@ resource "aws_subnet" "pub_sub_2" {
 
 # Create Private Subnets
 resource "aws_subnet" "priv_sub_1" {
-  vpc_id            = "aws_vpc.golden_vpc.id"
+  vpc_id            = "vpc-037f01947d82685a2"
   cidr_block        = "10.0.3.0/24"
   availability_zone = "us-west-2a"
 
@@ -56,7 +56,7 @@ resource "aws_subnet" "priv_sub_1" {
 }
 
 resource "aws_subnet" "priv_sub_2" {
-  vpc_id            = "aws_vpc.golden_vpc.id"
+  vpc_id            = "vpc-037f01947d82685a2"
   cidr_block        = "10.0.4.0/24"
   availability_zone = "us-west-2b"
 
@@ -67,7 +67,7 @@ resource "aws_subnet" "priv_sub_2" {
 
 # Create Internet Gateway
 resource "aws_internet_gateway" "IGW" {
-  vpc_id = "aws_vpc.golden_vpc.id"
+  vpc_id = "vpc-037f01947d82685a2"
 
   tags = {
     name = "IGW"
@@ -76,10 +76,10 @@ resource "aws_internet_gateway" "IGW" {
 
 #Create Route Table for Public Subnets
 resource "aws_route_table" "main_rt" {
-  vpc_id = "aws_vpc.golden_vpc.id"
+  vpc_id = "vpc-037f01947d82685a2"
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = "aws_internet_gateway.IGW.id"
+    gateway_id = "igw-03b2e4756aa08eee8"
   }
 
   tags = {
@@ -89,20 +89,20 @@ resource "aws_route_table" "main_rt" {
 
 #Route Table Associations for public Subnets
 resource "aws_route_table_association" "pub_rt_1" {
-  subnet_id      = "aws_subnet.pub_sub_1.id"
-  route_table_id = "aws_route_table.main_rt.id"
+  subnet_id      = aws_subnet.pub_sub_1.id
+  route_table_id = aws_route_table.main_rt.id
 }
 
 resource "aws_route_table_association" "pub_rt_2" {
-  subnet_id      = "aws_subnet.pub_sub_2.id"
-  route_table_id = "aws_route_table.main_rt.id"
+  subnet_id      = aws_subnet.pub_sub_2.id
+  route_table_id = aws_route_table.main_rt.id
 }
 
 # Create security groups
 resource "aws_security_group" "pub_sg" {
   name        = "pub_sg"
   description = "Allow web and ssh traffic"
-  vpc_id      = "aws_vpc.golden_vpc.id"
+  vpc_id      = "vpc-037f01947d82685a2"
 
   ingress {
     from_port   = 80
@@ -130,7 +130,7 @@ resource "aws_security_group" "pub_sg" {
 resource "aws_security_group" "priv_sg" {
   name        = "priv_sg"
   description = "Allow web tier and ssh traffic"
-  vpc_id      = "aws_vpc.golden_vpc.id"
+  vpc_id      = "vpc-037f01947d82685a2"
 
   ingress {
     from_port       = 3306
@@ -160,7 +160,7 @@ resource "aws_security_group" "priv_sg" {
 resource "aws_security_group" "alb_sg" {
   name        = "alb_sg"
   description = "security group for alb"
-  vpc_id      = "aws_vpc.golden_vpc.id"
+  vpc_id      = "vpc-037f01947d82685a2"
 
   ingress {
     from_port   = "0"
@@ -190,7 +190,7 @@ resource "aws_lb_target_group" "golden_tg" {
   name     = "golden-tg"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = "aws_vpc.golden_vpc.id"
+  vpc_id   = "vpc-037f01947d82685a2"
 
   health_check {
     interval            = 70
@@ -220,6 +220,17 @@ resource "aws_lb_target_group_attachment" "tg_attach2" {
   port             = 80
 
   depends_on = [aws_instance.web_2]
+}
+
+resource "aws_lb_listener" "listener_lb" {
+  load_balancer_arn = aws_lb.project_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.golden_tg.arn
+  }
 }
 
 #Create EC2 Instances for Public Subnets
@@ -290,7 +301,7 @@ resource "aws_db_instance" "golden_db" {
   backup_retention_period     = 35
   backup_window               = "22:00-23:00"
   maintenance_window          = "Sat:00:00-Sat:03:00"
-  multi_az                    = true
+  multi_az                    = false
   vpc_security_group_ids      = [aws_security_group.priv_sg.id]
   publicly_accessible         = false
   skip_final_snapshot         = true
